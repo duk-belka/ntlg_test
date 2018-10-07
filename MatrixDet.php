@@ -16,6 +16,11 @@ class MatrixDet
     private $matrix;
 
     /**
+     * @var int|float
+     */
+    private $det;
+
+    /**
      * MatrixDet constructor.
      *
      * @param array $matrix
@@ -29,49 +34,52 @@ class MatrixDet
     }
 
     /**
-     * @return float
+     * @return int|float
      */
-    public function getDet(): float
+    public function getDet()
     {
-        $matrix = $this->matrix;
+        if (null === $this->det) {
+            $this->det = $this->det($this->matrix);
+        }
+        return $this->det;
+    }
 
+    /**
+     * @param array $matrix
+     *
+     * @return float|int
+     */
+    private function det(array $matrix)
+    {
         if (\count($matrix) === 2) {
             return $matrix[0][0] * $matrix[1][1] - $matrix[0][1] * $matrix[1][0];
         }
 
-        $det = 0;
-
-        $lastR = \count($matrix) - 1;
-
-        foreach ($matrix[0] as $itemC => $value) {
-            $plusStep  = $value;
-            $minusStep = $value;
-
-            $currentR      = 1;
-            $currentPlusC  = $itemC;
-            $currentMinusC = $itemC;
-            while ($currentR <= $lastR) {
-                $currentPlusC++;
-                if ($currentPlusC > $lastR) {
-                    $currentPlusC = 0;
+        $total = 0;
+        foreach ($matrix[0] as $j => $jValue) {
+            $minor  = [];
+            $minorI = 0;
+            foreach ($matrix as $i => $i1Value) {
+                $minorJ = 0;
+                if ($i === 0) {
+                    continue;
                 }
-
-                $currentMinusC--;
-                if ($currentMinusC < 0) {
-                    $currentMinusC = $lastR;
+                foreach ($matrix[$i] as $j1 => $j1Value) {
+                    if ($j1 === $j) {
+                        continue;
+                    }
+                    $minor[$minorI][$minorJ] = $j1Value;
+                    $minorJ++;
                 }
-
-                $plusStep  *= $matrix[$currentR][$currentPlusC];
-                $minusStep *= $matrix[$currentR][$currentMinusC];
-
-                $currentR++;
+                $minorI++;
             }
-
-            $det += $plusStep - $minusStep;
+            $det   = $this->det($minor);
+            $total += (-1) ** ($j + 2) * $jValue * $det;
         }
 
-        return $det;
+        return $total;
     }
+
 
     /**
      * @return array
@@ -91,15 +99,19 @@ class MatrixDet
     {
         $count = \count($matrix);
 
+        if (2 > $count) {
+            throw new InvalidMatrixFormatException('Matrix is too small');
+        }
+
         foreach ($matrix as $row) {
             if (\count($row) !== $count) {
                 throw new InvalidMatrixFormatException('Matrix should be square');
             }
 
             foreach ($row as $item) {
-                if (!\is_int($item) && !\is_float($item)) {
+                if (!\is_numeric($item)) {
                     throw new InvalidMatrixFormatException(
-                        sprintf('Invalid matrix format: item "%s" should be float or integer', $item)
+                        sprintf('Invalid matrix format: item "%s" should be numeric', $item)
                     );
                 }
             }
